@@ -1,0 +1,5 @@
+package-as: trueItemLevel
+ignore:
+  - .gitignore
+  - .git
+  - .github

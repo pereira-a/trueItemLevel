@@ -1,0 +1,19 @@
+name: "Release Workflow"
+
+on:
+  push:
+    tags:
+      - '*-release'
+
+env:
+  CF_API_KEY: ${{ secrets.CF_API_KEY }}
+  GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: BigWigsMods/packager@v2.5.1
