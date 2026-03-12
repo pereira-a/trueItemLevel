@@ -10,7 +10,7 @@ hooksecurefunc("NotifyInspect", function(unit)
 end)
 
 local function finalize()
-    if itemLinks == {} then return end  -- no items, nothing to do / means GET_ITEM_INFO_RECEIVED fired for an unrelated task
+    if #itemLinks == 0 then return end  -- no items, nothing to do / means GET_ITEM_INFO_RECEIVED fired for an unrelated task
 
     local allCached = true
     for _, link in ipairs(itemLinks) do
