@@ -27,7 +27,6 @@ local function calculateItemLevel()
             local level = C_Item.GetDetailedItemLevelInfo(link)
             if level and level > 0 then
                 local _, _, _, equipLoc = C_Item.GetItemInfoInstant(link)
-                print(string.format("Slot %d: %s (iLvl %d, equipLoc %s)", slot, link, level, equipLoc))
 
                 if isTabardOrShirt(equipLoc) then
                     -- tabards and shirts are ignored
