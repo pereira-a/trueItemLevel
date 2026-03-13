@@ -42,7 +42,6 @@ local function calculateItemLevel()
             end
         end
     end
-    print(string.format("Total iLvl: %d, Counted Items: %d", total, count))
     return total / count
 end
 
