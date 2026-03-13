@@ -9,6 +9,15 @@ hooksecurefunc("NotifyInspect", function(unit)
     inspectUnit = unit
 end)
 
+local function isTwoHandedWeapon(equipLoc)
+    return equipLoc == "INVTYPE_2HWEAPON"
+end
+
+local function isTabardOrShirt(equipLoc)
+    return equipLoc == "INVTYPE_TABARD" or equipLoc == "INVTYPE_BODY"
+end
+
+
 local function finalize()
     if #itemLinks == 0 then return end  -- no items, nothing to do / means GET_ITEM_INFO_RECEIVED fired for an unrelated task
 
@@ -24,9 +33,23 @@ local function finalize()
     local total, count = 0, 0
     for _, link in ipairs(itemLinks) do
         local level = C_Item.GetDetailedItemLevelInfo(link)
-        if level and level > 1 then  -- skip shirts / tabards (iLvl 1)
+        if level and level > 0 then  -- skip shirts / tabards (iLvl 1)
+            local add = 1
+            local _, _, _, equipLoc = C_Item.GetItemInfoInstant(link)
+
+            if isTabardOrShirt(equipLoc) then
+                -- tabards and shirts are ignored
+                level = 0
+                add  = 0
+            end
+
+            -- Double the item level contribution for two-handed weapons
+            if isTwoHandedWeapon(equipLoc) then
+                level = level * 2
+                add = 2
+            end
             total = total + level
-            count = count + 1
+            count = count + add
         end
     end
 
