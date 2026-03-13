@@ -17,26 +17,17 @@ local function isTabardOrShirt(equipLoc)
     return equipLoc == "INVTYPE_TABARD" or equipLoc == "INVTYPE_BODY"
 end
 
-local function calculateCount()
-    local count = 17
-    local _, _, _, equipLoc16 = C_Item.GetItemInfoInstant(itemLinks[16] or 0)
-    if ((itemLinks[16] == nil and itemLinks[17] == nil) or -- if both main hand and off hand are empty
-            ((isTwoHandedWeapon(equipLoc16)) and (itemLinks[17] == nil))) then -- or if main hand is a two handed weapon (and not using Titans Grip)
-        count = 16
-    end
-    return count
-end
-
 -- Replicates the logic used by blizzard (https://warcraft.wiki.gg/wiki/API_GetAverageItemLevel)
 -- Requires itemLinks to be populated
 local function calculateItemLevel() 
-    local total, count = 0, calculateCount()
+    local total, count = 0, 16 -- blizzard always devides by 16
     for slot = 1, 19 do
         local link = itemLinks[slot]
         if link ~= nil then
             local level = C_Item.GetDetailedItemLevelInfo(link)
             if level and level > 0 then
                 local _, _, _, equipLoc = C_Item.GetItemInfoInstant(link)
+                print(string.format("Slot %d: %s (iLvl %d, equipLoc %s)", slot, link, level, equipLoc))
 
                 if isTabardOrShirt(equipLoc) then
                     -- tabards and shirts are ignored
@@ -44,20 +35,28 @@ local function calculateItemLevel()
                 end
 
                 -- Double the item level contribution for two-handed weapons
-                -- if isTwoHandedWeapon(equipLoc) then
-                --     level = level * 2
-                -- end
+                if isTwoHandedWeapon(equipLoc) then
+                    level = level * 2
+                end
 
                 total = total + level
             end
         end
     end
+    print(string.format("Total iLvl: %d, Counted Items: %d", total, count))
     return total / count
 end
 
 
+local function hasAnyItem()
+    for slot = 1, 19 do
+        if itemLinks[slot] ~= nil then return true end
+    end
+    return false
+end
+
 local function finalize()
-    if #itemLinks == 0 then return end -- no items, nothing to do / means GET_ITEM_INFO_RECEIVED fired for an unrelated task
+    if not hasAnyItem() then return end -- no items, nothing to do / means GET_ITEM_INFO_RECEIVED fired for an unrelated task
 
     local allCached = true
     for slot = 1, 19 do
@@ -79,6 +78,22 @@ local function finalize()
     frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
 end
 
+local function runForUnit(unit, name)
+    inspectUnit = unit
+    inspectName = name
+    itemLinks   = {}
+    for slot = 1, 19 do
+        itemLinks[slot] = GetInventoryItemLink(unit, slot)
+    end
+    -- try to finalize immediately; if not all cached, GET_ITEM_INFO_RECEIVED will retry
+    finalize()
+end
+
+SLASH_TRUEITEMLEVEL1 = "/debug"
+SlashCmdList["TRUEITEMLEVEL"] = function()
+    runForUnit("player", GetUnitName("player", true) or "player")
+end
+
 frame:RegisterEvent("INSPECT_READY")
 frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 frame:SetScript("OnEvent", function(_, event, ...)
@@ -88,20 +103,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
             return
         end
 
-        local guid  = ...
-        local unit  = inspectUnit or "inspect"
-        inspectName = GetUnitName(unit, true) or guid
-        itemLinks   = {}
-
-        for slot = 1, 19 do
-            local link = GetInventoryItemLink(unit, slot)
-            itemLinks[slot] = link
-        end
-
-        if #itemLinks > 0 then
-            -- try to finalize immediately, in case all item info is already cached. If not, GET_ITEM_INFO_RECEIVED will fire when data is available
-            finalize()
-        end
+        local guid = ...
+        local unit = inspectUnit or "inspect"
+        runForUnit(unit, GetUnitName(unit, true) or guid)
     elseif event == "GET_ITEM_INFO_RECEIVED" then
         finalize()
     end
