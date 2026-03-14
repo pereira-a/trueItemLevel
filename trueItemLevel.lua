@@ -2,6 +2,7 @@ local frame       = CreateFrame("Frame")
 local inspectUnit = nil
 local inspectName = nil
 local itemLinks   = {}
+local pendingIDs  = {}
 
 
 -- GetInventoryItemLink needs the unit and INSPECT_READY only gives the GUID
@@ -19,7 +20,7 @@ end
 
 -- Replicates the logic used by blizzard (https://warcraft.wiki.gg/wiki/API_GetAverageItemLevel)
 -- Requires itemLinks to be populated
-local function calculateItemLevel() 
+local function calculateItemLevel()
     local total, count = 0, 16 -- blizzard always devides by 16
     for slot = 1, 19 do
         local link = itemLinks[slot]
@@ -54,17 +55,8 @@ local function hasAnyItem()
 end
 
 local function finalize()
-    if not hasAnyItem() then return end -- no items, nothing to do / means GET_ITEM_INFO_RECEIVED fired for an unrelated task
-
-    local allCached = true
-    for slot = 1, 19 do
-        local link = itemLinks[slot]
-        if link ~= nil and not C_Item.IsItemDataCachedByID(link) then
-            C_Item.RequestLoadItemDataByID(link)
-            allCached = false
-        end
-    end
-    if not allCached then return end    
+    if not hasAnyItem() then return end
+    if next(pendingIDs) ~= nil then return end
 
     local itemLevel = calculateItemLevel()
     print(string.format("|cFF00B4FF[True Item Level]|r |cFFFFFFFF%s|r \194\187 |cFFFFD700%.1f iLvl|r", inspectName, itemLevel))
@@ -73,6 +65,7 @@ local function finalize()
     inspectUnit = nil
     inspectName = nil
     itemLinks   = {}
+    pendingIDs  = {}
     frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
 end
 
@@ -80,10 +73,30 @@ local function runForUnit(unit, name)
     inspectUnit = unit
     inspectName = name
     itemLinks   = {}
+    pendingIDs  = {}
+    frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+
     for slot = 1, 19 do
-        itemLinks[slot] = GetInventoryItemLink(unit, slot)
+        local link = GetInventoryItemLink(unit, slot)
+        if link then
+            itemLinks[slot] = link
+            local itemID = tonumber(link:match("item:(%d+)"))
+            if itemID and not C_Item.IsItemDataCachedByID(itemID) then
+                pendingIDs[itemID] = true
+                C_Item.RequestLoadItemDataByID(itemID)
+            end
+        else
+            -- Link not available yet — item data isn't loaded.
+            -- GetInventoryItemID can still return the raw item ID from the inspect
+            -- packet, which lets request the data so GET_ITEM_INFO_RECEIVED fires
+            local itemID = GetInventoryItemID(unit, slot)
+            if itemID then
+                pendingIDs[itemID] = true
+                C_Item.RequestLoadItemDataByID(itemID)
+            end
+        end
     end
-    -- try to finalize immediately; if not all cached, GET_ITEM_INFO_RECEIVED will retry
+
     finalize()
 end
 
@@ -93,18 +106,21 @@ SlashCmdList["TRUEITEMLEVEL"] = function()
 end
 
 frame:RegisterEvent("INSPECT_READY")
-frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 frame:SetScript("OnEvent", function(_, event, ...)
     if event == "INSPECT_READY" then
-        -- INSPECT_READY fires for every item. Ensure we only process the first time.
         if inspectUnit == nil then
             return
         end
 
         local guid = ...
         local unit = inspectUnit or "inspect"
-        runForUnit(unit, GetUnitName(unit, true) or guid)
+        local name = GetUnitName(unit, true) or guid
+        inspectUnit = nil -- clear now so duplicate INSPECT_READY fires are ignored
+
+        runForUnit(unit, name)
     elseif event == "GET_ITEM_INFO_RECEIVED" then
+        local itemID = ...
+        pendingIDs[itemID] = nil
         finalize()
     end
 end)
