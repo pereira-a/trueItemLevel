@@ -22,6 +22,7 @@ end
 -- Requires itemLinks to be populated
 local function calculateItemLevel()
     local total, count = 0, 16 -- blizzard always devides by 16
+    local hasTwoHand = false
     for slot = 1, 19 do
         local link = itemLinks[slot]
         if link ~= nil then
@@ -35,8 +36,9 @@ local function calculateItemLevel()
                 end
 
                 -- Double the item level contribution for two-handed weapons
-                if isTwoHandedWeapon(equipLoc) then
+                if isTwoHandedWeapon(equipLoc) and not hasTwoHand then
                     level = level * 2
+                    hasTwoHand = true -- only double for the first two-handed weapon (to handle Warriors with Titan's Grip)
                 end
 
                 total = total + level
