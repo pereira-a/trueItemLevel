@@ -143,15 +143,8 @@ SlashCmdList["TRUEITEMLEVEL"] = function()
 end
 
 frame:RegisterEvent("INSPECT_READY")
-frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(_, event, ...)
-    if event == "ADDON_LOADED" then
-        local addonName = ...
-        if addonName == "Blizzard_InspectUI" then
-            ensureLabel()
-            frame:UnregisterEvent("ADDON_LOADED")
-        end
-    elseif event == "INSPECT_READY" then
+    if event == "INSPECT_READY" then
         if inspectUnit == nil then
             return
         end
