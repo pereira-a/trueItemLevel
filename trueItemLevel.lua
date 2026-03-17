@@ -151,9 +151,11 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         local guid = ...
         local unit = inspectUnit or "inspect"
-        local name = GetUnitName(unit, true) or guid
         inspectUnit = nil -- clear now so duplicate INSPECT_READY fires are ignored
 
+        if UnitIsUnit(unit, "player") then return end
+
+        local name = GetUnitName(unit, true) or guid
         runForUnit(unit, name)
     elseif event == "GET_ITEM_INFO_RECEIVED" then
         local itemID = ...
