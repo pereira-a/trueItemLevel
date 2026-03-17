@@ -3,6 +3,7 @@ local inspectUnit = nil
 local inspectName = nil
 local itemLinks   = {}
 local pendingIDs  = {}
+local ilevelLabel = nil
 
 
 -- GetInventoryItemLink needs the unit and INSPECT_READY only gives the GUID
@@ -16,6 +17,29 @@ end
 
 local function isTabardOrShirt(equipLoc)
     return equipLoc == "INVTYPE_TABARD" or equipLoc == "INVTYPE_BODY"
+end
+
+local labelFrame = nil
+
+local function ensureLabel()
+    if ilevelLabel then return end
+    if not InspectFrame then return end
+
+    labelFrame = CreateFrame("Frame", nil, UIParent)
+    labelFrame:SetFrameStrata("TOOLTIP")
+    labelFrame:SetSize(90, 20)
+
+    labelFrame:SetPoint("LEFT", InspectPaperDollFrame.ViewButton, "RIGHT", 2, 0)
+
+    ilevelLabel = labelFrame:CreateFontString(nil, "OVERLAY")
+    ilevelLabel:SetFont("Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
+    ilevelLabel:SetAllPoints(labelFrame)
+    ilevelLabel:SetTextColor(1, 0.82, 0)
+    labelFrame:Hide()
+
+    InspectFrame:HookScript("OnHide", function()
+        labelFrame:Hide()
+    end)
 end
 
 -- Replicates the logic used by blizzard (https://warcraft.wiki.gg/wiki/API_GetAverageItemLevel)
@@ -63,6 +87,11 @@ local function finalize()
     local itemLevel = calculateItemLevel()
     print(string.format("|cFF00B4FF[True Item Level]|r |cFFFFFFFF%s|r \194\187 |cFFFFD700%.1f iLvl|r", inspectName, itemLevel))
 
+    if labelFrame then
+        ilevelLabel:SetText(string.format("%.1f iLvl", itemLevel))
+        labelFrame:Show()
+    end
+
     -- reset state
     inspectUnit = nil
     inspectName = nil
@@ -77,6 +106,12 @@ local function runForUnit(unit, name)
     itemLinks   = {}
     pendingIDs  = {}
     frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+
+    ensureLabel()
+    if labelFrame then
+        ilevelLabel:SetText("Loading...")
+        labelFrame:Show()
+    end
 
     for slot = 1, 19 do
         local link = GetInventoryItemLink(unit, slot)
@@ -108,8 +143,15 @@ SlashCmdList["TRUEITEMLEVEL"] = function()
 end
 
 frame:RegisterEvent("INSPECT_READY")
+frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(_, event, ...)
-    if event == "INSPECT_READY" then
+    if event == "ADDON_LOADED" then
+        local addonName = ...
+        if addonName == "Blizzard_InspectUI" then
+            ensureLabel()
+            frame:UnregisterEvent("ADDON_LOADED")
+        end
+    elseif event == "INSPECT_READY" then
         if inspectUnit == nil then
             return
         end
