@@ -12,7 +12,7 @@ hooksecurefunc("NotifyInspect", function(unit)
 end)
 
 local function isTwoHandedWeapon(equipLoc)
-    return equipLoc == "INVTYPE_2HWEAPON"
+    return equipLoc == "INVTYPE_2HWEAPON" or equipLoc == "INVTYPE_RANGED"
 end
 
 local function isTabardOrShirt(equipLoc)
