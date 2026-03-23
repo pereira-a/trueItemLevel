@@ -81,13 +81,16 @@ local function hasAnyItem()
 end
 
 local function finalize()
-    if not hasAnyItem() then return end
+    if not hasAnyItem() then
+        if labelFrame then labelFrame:Hide() end
+        return
+    end
     if next(pendingIDs) ~= nil then return end
 
     local itemLevel = calculateItemLevel()
     print(string.format("|cFF00B4FF[True Item Level]|r |cFFFFFFFF%s|r \194\187 |cFFFFD700%.1f iLvl|r", inspectName, itemLevel))
 
-    if labelFrame then
+    if labelFrame and InspectFrame and InspectFrame:IsShown() then
         ilevelLabel:SetText(string.format("%.1f iLvl", itemLevel))
         labelFrame:Show()
     end
