@@ -148,7 +148,9 @@ end
 frame:RegisterEvent("INSPECT_READY")
 frame:SetScript("OnEvent", function(_, event, ...)
     if event == "INSPECT_READY" then
-        if inspectUnit == nil then
+        if inspectUnit == nil then return end
+        if not InspectFrame or not InspectFrame:IsShown() then
+            inspectUnit = nil
             return
         end
 
