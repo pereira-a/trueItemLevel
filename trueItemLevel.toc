@@ -1,8 +1,8 @@
-## Interface: 120001
-## Interface-Retail: 120001
+## Interface: 120005
+## Interface-Retail: 120005
 ## Title: True Item Level
 ## Notes: A minimal World of Warcraft retail addon that displays an inspected player's average equipped item level. 
-## Version: 1.0.0
+## Version: 1.0.1
 ## Author: pereira-a
 ## X-Curse-Project-ID: 1483902
 
