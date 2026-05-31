@@ -93,7 +93,7 @@ local function resetState()
     itemLinks   = {}
     pendingIDs  = {}
     retrySlots  = {}
-    frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
+    frame:UnregisterEvent("ITEM_DATA_LOAD_RESULT")
 end
 
 local function finalize()
@@ -121,7 +121,7 @@ local function runForUnit(unit, name)
     itemLinks   = {}
     pendingIDs  = {}
     retrySlots  = {}
-    frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+    frame:RegisterEvent("ITEM_DATA_LOAD_RESULT")
 
     ensureLabel()
     if ilevelLabel and labelFrame then
@@ -139,7 +139,7 @@ local function runForUnit(unit, name)
                 C_Item.RequestLoadItemDataByID(itemID)
             end
         else
-            -- Link unavailable; request data and retry link on GET_ITEM_INFO_RECEIVED.
+            -- Link unavailable; request data and retry link on ITEM_DATA_LOAD_RESULT.
             -- Skip if already cached — RequestLoadItemDataByID would be a no-op and
             -- the event would never fire, blocking pendingIDs forever.
             local itemID = GetInventoryItemID(unit, slot)
@@ -175,7 +175,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
         runForUnit(unit, GetUnitName(unit, true) or guid)
 
-    elseif event == "GET_ITEM_INFO_RECEIVED" then
+    elseif event == "ITEM_DATA_LOAD_RESULT" then
         local itemID = ...
         if not pendingIDs[itemID] then return end
 
